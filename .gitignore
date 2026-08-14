@@ -1,0 +1,8 @@
+*.blend1
+*.blend2
+__pycache__/
+.qodo/
+renders/frames/
+*.log
+Thumbs.db
+.DS_Store
