@@ -40,8 +40,21 @@ nav {
   text-transform: uppercase;
   color: var(--dim);
 }
-nav .links { display: flex; gap: 22px; }
+nav .links { display: flex; align-items: center; gap: 22px; }
 nav a:hover { color: var(--ink); }
+.lang { display: inline-flex; gap: 8px; margin-left: 6px; }
+.lang button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--dim);
+  font: inherit;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  padding: 0;
+}
+.lang button:hover { color: var(--ink); }
+.lang button[aria-current="true"] { color: var(--cyan); }
 
 .copy {
   max-width: 620px;
