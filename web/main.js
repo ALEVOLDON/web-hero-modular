@@ -381,6 +381,8 @@ function setupInteractivity() {
       
       // Tap detected (minimal movement)
       if (moveDistance < 10) {
+        pointer.x = (touchStartX / window.innerWidth) * 2 - 1;
+        pointer.y = -(touchStartY / window.innerHeight) * 2 + 1;
         checkRaycast();
         if (hoveredModule) {
           focusModule(hoveredModule);
@@ -399,6 +401,9 @@ function setupInteractivity() {
 
   window.addEventListener("click", (e) => {
     if (e.target.closest("nav, .dock, .inspector-card, #btn-unfocus, #boot")) return;
+    pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    checkRaycast();
     if (hoveredModule) {
       focusModule(hoveredModule);
     }
@@ -443,6 +448,9 @@ function setMode(mode) {
 
   if (mode === "look") {
     hideInspector();
+    if (focusedModule) {
+      unfocusModule();
+    }
   } else if (mode === "learn") {
     if (hoveredModule || focusedModule) {
       updateInspector(hoveredModule || focusedModule);
@@ -649,14 +657,17 @@ function hideInspector() {
 }
 
 function focusModule(modId) {
+  // Automatically switch to Learn mode on desktop and mobile when a module is clicked
+  if (currentMode !== "learn") {
+    setMode("learn");
+  }
+
   focusedModule = modId;
   const bound = MODULE_BOUNDS[modId];
   if (!bound) return;
 
   document.getElementById("btn-unfocus").style.display = "inline-flex";
-  if (currentMode === "learn") {
-    updateInspector(modId);
-  }
+  updateInspector(modId);
 
   const mobile = isMobile();
   const targetX = mobile ? bound.x : bound.x + 0.15;
