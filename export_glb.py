@@ -37,11 +37,13 @@ if cables:
     except Exception as e:
         print("Cable conversion error:", e)
 
+# IMPORTANT: export_apply=False preserves the local transformation matrices and pivot points
+# of child objects (Knobs, FaderCaps, Modules), enabling in-place rotation and linear sliding.
 kwargs = dict(
     filepath=OUT,
     export_format="GLB",
     use_visible=True,
-    export_apply=True,
+    export_apply=False,
     export_animations=False,
     export_cameras=False,
     export_extras=True,
