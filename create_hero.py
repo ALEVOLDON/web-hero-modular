@@ -7,12 +7,16 @@ EEVEE, 8s seamless loop. Run:
 """
 import bpy
 import bmesh
+import json
 import math
 import os
 import sys
 from mathutils import Vector
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+from module_spec import CABLE_COLORS, HP_TOTAL, MODULES, ROUTES
 BLEND = os.path.join(ROOT, "hero_loop.blend")
 STILL = os.path.join(ROOT, "renders", "still.png")
 ANIM_DIR = os.path.join(ROOT, "renders", "frames")
@@ -366,8 +370,8 @@ def cable(name, pts, col, material, radius=0.004):
     cu = bpy.data.curves.new(name, "CURVE")
     cu.dimensions = "3D"
     cu.bevel_depth = radius
-    cu.bevel_resolution = 2
-    cu.resolution_u = 12
+    cu.bevel_resolution = 4
+    cu.resolution_u = 20
     spl = cu.splines.new("BEZIER")
     spl.bezier_points.add(len(pts) - 1)
     for i, p in enumerate(pts):
@@ -379,6 +383,54 @@ def cable(name, pts, col, material, radius=0.004):
     col.objects.link(o)
     assign(o, material)
     return o
+
+
+def hanging_pts(pa, pb, sag):
+    span = (pb - pa).length
+    mid = (pa + pb) * 0.5
+    out = sag * 0.95 + span * 0.22
+    forward = Vector((0.0, -1.0, 0.0))
+    down = Vector((0.0, 0.0, -1.0))
+    p1 = pa + forward * (out * 0.28) + down * 0.015
+    p2 = mid + forward * out + down * (sag * 0.62)
+    p3 = pb + forward * (out * 0.28) + down * 0.015
+    return [Vector(pa), p1, p2, p3, Vector(pb)]
+
+
+def load_tex(path, name):
+    if not os.path.isfile(path):
+        print("missing tex", path)
+        return None
+    img = bpy.data.images.load(path, check_existing=True)
+    img.name = name
+    img.pack()
+    return img
+
+
+def tex_mat(name, img, emit=0.28, metal=0.38, rough=0.44):
+    m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    nt.nodes.clear()
+    out = nt.nodes.new("ShaderNodeOutputMaterial")
+    bsdf = nt.nodes.new("ShaderNodeBsdfPrincipled")
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = img
+    tex.interpolation = "Smart"
+    nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    if "Emission Color" in bsdf.inputs:
+        nt.links.new(tex.outputs["Color"], bsdf.inputs["Emission Color"])
+        bsdf.inputs["Emission Strength"].default_value = emit
+    bsdf.inputs["Metallic"].default_value = metal
+    bsdf.inputs["Roughness"].default_value = rough
+    nt.links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
+    return m
+
+
+def uv_local(u, v, mw, mh):
+    x = (u - 0.5) * mw * 0.90
+    y = (v - 0.5) * mh * 0.88
+    return x, y
 
 
 def _iter_fcurves(id_data):
@@ -453,6 +505,7 @@ def build():
     col_hud = collection("04_HUD")
     col_fx = collection("05_FX")
     col_cam = collection("06_Camera")
+    tex_dir = os.path.join(ROOT, "textures")
 
     M_METAL = mat("MetalCase", (0.03, 0.033, 0.04), 0.32, 0.85)
     M_PANEL = mat("Panel", (0.018, 0.02, 0.024), 0.45, 0.2)
@@ -462,32 +515,22 @@ def build():
     M_KNOB_MG = mat("KnobMg", (0.75, 0.18, 0.55), 0.28, 0.1)
     M_KNOB_WH = mat("KnobWh", (0.82, 0.84, 0.88), 0.3, 0.05)
     M_JACK = mat("Jack", (0.08, 0.08, 0.09), 0.35, 0.6)
-    M_LED_OFF = mat("LedOff", (0.02, 0.03, 0.03), 0.3, 0.0, emit=(0.1, 0.4, 0.3), emit_s=0.15)
+    M_SCREW = mat("Screw", (0.18, 0.19, 0.2), 0.28, 0.85)
+    M_TIP = mat("Tip", (0.55, 0.56, 0.58), 0.22, 0.9)
+    knobs_m = [M_KNOB_OR, M_KNOB_CY, M_KNOB_MG, M_KNOB_WH]
     cables_m = [
-        mat(f"Cab{i}", c, 0.35, 0.0, emit=c, emit_s=0.8)
-        for i, c in enumerate((
-            (0.15, 0.75, 0.95),
-            (1.0, 0.45, 0.08),
-            (0.85, 0.15, 0.55),
-            (0.2, 0.9, 0.45),
-            (0.95, 0.85, 0.15),
-            (0.4, 0.35, 1.0),
-            (0.95, 0.25, 0.2),
-            (0.1, 0.85, 0.8),
-        ))
+        mat(f"Cab{i}", c, 0.38, 0.05, emit=c, emit_s=0.55)
+        for i, c in enumerate(CABLE_COLORS)
     ]
 
-    # compact dark table — case sits on it, little empty foreground
-    table = box("Table", 1.7, 0.95, 0.05, (0.22, 0.04, -0.025), col_set, M_TABLE)
+    table = box("Table", 1.85, 1.05, 0.05, (0.22, 0.02, -0.025), col_set, M_TABLE)
     bevel(table, 0.006, 3)
-    floor = box("Floor", 10.0, 10.0, 0.03, (0.0, 0.0, -0.07), col_set, mat("Floor", (0.006, 0.008, 0.012), 0.75, 0.0))
+    box("Floor", 10.0, 10.0, 0.03, (0.0, 0.0, -0.07), col_set, mat("Floor", (0.006, 0.008, 0.012), 0.75, 0.0))
 
-    # circuit backdrop
     circ = paint_circuit("CircuitBG")
     m_circ = hud_mat("CircuitM", circ, (0.15, 0.55, 0.9), 1.1)
     hud_plane("Backdrop", 6.5, 3.6, (0.3, 2.4, 1.15), (math.radians(90), 0, 0), m_circ, col_set)
 
-    # whole case tilts toward camera like the cover
     root = bpy.data.objects.new("CaseRoot", None)
     col_case.objects.link(root)
     root.location = (0.28, 0.05, 0.0)
@@ -497,63 +540,145 @@ def build():
         o.parent = root
         return o
 
-    case = adopt(box("Case", 1.02, 0.50, 0.12, (0.0, 0.0, 0.09), col_case, M_METAL))
-    bevel(case, 0.007, 3)
-    panel = adopt(box("Panel", 0.96, 0.44, 0.008, (0.0, 0.0, 0.154), col_case, M_PANEL))
-    bevel(panel, 0.002, 2)
-    for i, x in enumerate((-0.50, 0.50)):
-        ch = adopt(box(f"Cheek_{i}", 0.035, 0.52, 0.17, (x, 0.0, 0.085), col_case, M_METAL))
+    case_w, case_d, case_h = 1.22, 0.52, 0.13
+    case = adopt(box("Case", case_w, case_d, case_h, (0.0, 0.0, 0.09), col_case, M_METAL))
+    bevel(case, 0.008, 3)
+    inner_w = 1.12
+    face_h = 0.44
+    hp_u = inner_w / HP_TOTAL
+    for i, x in enumerate((-case_w * 0.5, case_w * 0.5)):
+        ch = adopt(box(f"Cheek_{i}", 0.038, 0.54, 0.18, (x, 0.0, 0.09), col_case, M_METAL))
         bevel(ch, 0.005, 2)
 
-    knobs_m = [M_KNOB_OR, M_KNOB_CY, M_KNOB_MG, M_KNOB_WH]
-    for row in range(4):
-        for col in range(14):
-            x = -0.42 + col * 0.062
-            y = 0.14 - row * 0.068
-            z = 0.175
-            km = knobs_m[(row * 3 + col) % 4]
-            stem = adopt(cyl(f"KnobStem_{row}_{col}", 0.006, 0.012, (x, y, z - 0.002), col_case, M_JACK, verts=12))
-            cap = adopt(cyl(f"Knob_{row}_{col}", 0.012, 0.01, (x, y, z + 0.006), col_case, km, verts=18))
-            smooth(cap)
-            cap.rotation_euler.z = ((row * 14 + col) * 0.41) % math.tau
+    screens = {
+        "wave": load_tex(os.path.join(tex_dir, "screen_wave.png"), "ScrWave"),
+        "steps": load_tex(os.path.join(tex_dir, "screen_steps.png"), "ScrSteps"),
+        "spec": load_tex(os.path.join(tex_dir, "screen_spec.png"), "ScrSpec"),
+    }
 
-    for i in range(8):
-        x = -0.36 + i * 0.08
-        adopt(box(f"FaderRail_{i}", 0.01, 0.08, 0.003, (x, -0.10, 0.16), col_case, M_JACK))
-        adopt(box(f"FaderCap_{i}", 0.016, 0.012, 0.007, (x, -0.10 + (i % 4 - 1.5) * 0.012, 0.166), col_case, knobs_m[i % 4]))
-
-    jacks = []
-    for i in range(18):
-        x = -0.44 + i * 0.05
-        j = adopt(cyl(f"Jack_{i}", 0.006, 0.012, (x, -0.175, 0.16), col_case, M_JACK, verts=12, rot=(math.radians(90), 0, 0)))
-        plug = adopt(cyl(f"Plug_{i}", 0.007, 0.016, (x, -0.188, 0.16), col_case, cables_m[i % len(cables_m)], verts=10, rot=(math.radians(90), 0, 0)))
-        jacks.append(j)
-
+    jack_map = {}
     leds = []
-    for i in range(16):
-        x = -0.40 + i * 0.052
-        led = adopt(box(f"LED_{i}", 0.012, 0.008, 0.003, (x, 0.185, 0.161), col_case,
-                        mat(f"LEDMAT_{i}", (0.02, 0.08, 0.06), 0.3, 0.0, emit=(0.2, 1.0, 0.55), emit_s=0.2)))
-        leds.append(led)
+    cursor = -inner_w * 0.5
+
+    for mi, spec in enumerate(MODULES):
+        mw = spec["hp"] * hp_u
+        mid_x = cursor + mw * 0.5
+        cursor += mw
+        empty = bpy.data.objects.new(f"Module_{spec['id']}", None)
+        col_case.objects.link(empty)
+        empty.parent = root
+        empty.location = (mid_x, 0.0, 0.156)
+
+        body = box(f"Module_{spec['id']}_Body", mw - 0.004, face_h, 0.01, (0, 0, -0.004), col_case, M_PANEL)
+        body.parent = empty
+        tex = load_tex(os.path.join(tex_dir, f"panel_{spec['id']}.png"), f"Panel_{spec['id']}")
+        if tex:
+            face_m = tex_mat(f"FaceM_{spec['id']}", tex, emit=0.32)
+        else:
+            face_m = mat(f"FaceM_{spec['id']}", (0.02, 0.022, 0.028), 0.45, 0.25)
+        face = hud_plane(f"Module_{spec['id']}_Face", mw - 0.008, face_h - 0.01, (0, 0, 0.003), (0, 0, 0), face_m, col_case)
+        face.parent = empty
+
+        accent = spec["accent"]
+        km = knobs_m[mi % 4]
+        for ki, (label, u, v) in enumerate(spec.get("knobs", [])):
+            x, y = uv_local(u, v, mw, face_h)
+            stem = cyl(f"KnobStem_{spec['id']}_{ki}", 0.0055, 0.01, (x, y, 0.004), col_case, M_JACK, verts=10)
+            cap = cyl(f"Knob_{spec['id']}_{ki}", 0.0115, 0.009, (x, y, 0.012), col_case, km, verts=18)
+            stem.parent = empty
+            cap.parent = empty
+            smooth(cap)
+            cap.rotation_euler.z = (mi * 1.7 + ki * 0.8) % math.tau
+            pointer = box(f"KnobPtr_{spec['id']}_{ki}", 0.002, 0.009, 0.002, (x, y + 0.006, 0.017), col_case, M_KNOB_WH)
+            pointer.parent = empty
+
+        for ji, (label, u, v) in enumerate(spec.get("jacks", [])):
+            x, y = uv_local(u, v, mw, face_h)
+            ring = cyl(f"Jack_{spec['id']}_{ji}", 0.0072, 0.006, (x, y, 0.005), col_case, M_JACK, verts=12)
+            hole = cyl(f"JackHole_{spec['id']}_{ji}", 0.0036, 0.007, (x, y, 0.005), col_case, mat("Hole", (0.01, 0.01, 0.012), 0.6, 0.0), verts=10)
+            ring.parent = empty
+            hole.parent = empty
+            jack_map[(spec["id"], ji)] = ring
+
+        nled = spec.get("leds", 0)
+        if nled:
+            for li in range(nled):
+                u = 0.12 + (0.76 * li / max(1, nled - 1))
+                x, y = uv_local(u, 0.84 if spec["id"] == "CLK" else 0.86, mw, face_h)
+                led = box(
+                    f"LED_{spec['id']}_{li}", 0.01, 0.006, 0.0025, (x, y, 0.006), col_case,
+                    mat(f"LEDMAT_{spec['id']}_{li}", (0.02, 0.08, 0.06), 0.3, 0.0, emit=accent, emit_s=0.25),
+                )
+                led.parent = empty
+                leds.append(led)
+
+        if spec.get("faders"):
+            n = spec["faders"]
+            for fi in range(n):
+                u = 0.20 + fi * 0.20
+                x, y0 = uv_local(u, 0.55, mw, face_h)
+                rail = box(f"FaderRail_{spec['id']}_{fi}", 0.006, 0.12, 0.003, (x, y0, 0.004), col_case, M_JACK)
+                cap = box(f"FaderCap_{spec['id']}_{fi}", 0.016, 0.012, 0.007, (x, y0 + (fi - 1.5) * 0.016, 0.01), col_case, knobs_m[fi % 4])
+                rail.parent = empty
+                cap.parent = empty
+
+        kind = spec.get("screen")
+        if kind and screens.get(kind):
+            if spec["id"] == "VIS":
+                sx, sy, v = 0.072, 0.038, 0.78
+            elif spec["id"] == "VCO":
+                sx, sy, v = 0.055, 0.022, 0.86
+            else:
+                sx, sy, v = 0.07, 0.02, 0.80
+            sm = hud_mat(f"ScreenM_{spec['id']}", screens[kind], accent, 2.4)
+            x, y = uv_local(0.5, v, mw, face_h)
+            scr = hud_plane(f"Screen_{spec['id']}", sx, sy, (x, y, 0.006), (0, 0, 0), sm, col_case)
+            scr.parent = empty
+
+        for sx, sy in ((-mw * 0.42, face_h * 0.42), (mw * 0.42, face_h * 0.42), (-mw * 0.42, -face_h * 0.42), (mw * 0.42, -face_h * 0.42)):
+            scw = cyl(f"Screw_{spec['id']}_{sx:.2f}", 0.0032, 0.003, (sx, sy, 0.006), col_case, M_SCREW, verts=8)
+            scw.parent = empty
+
+        rail = box(f"Rail_{spec['id']}", 0.003, face_h + 0.004, 0.012, (mw * 0.5, 0, -0.002), col_case, M_METAL)
+        rail.parent = empty
 
     bpy.context.view_layer.update()
-    routes = [
-        (0, 8, 0.11), (1, 12, 0.17), (2, 6, 0.09), (3, 15, 0.21),
-        (4, 11, 0.15), (5, 16, 0.19), (7, 14, 0.13), (9, 17, 0.10),
-        (10, 13, 0.16),
-    ]
-    for ci, (a, b, lift) in enumerate(routes):
-        pa = root.matrix_world @ Vector(jacks[a].location)
-        pb = root.matrix_world @ Vector(jacks[b].location)
-        mid = (pa + pb) * 0.5
-        mid.z += lift
-        mid.y += -0.06
-        c1 = pa.lerp(mid, 0.35)
-        c1.z += lift * 0.4
-        c2 = pb.lerp(mid, 0.35)
-        c2.z += lift * 0.4
-        c = cable(f"Cable_{ci}", [pa, c1, mid, c2, pb], col_cables, cables_m[ci % len(cables_m)], 0.0032)
-        key_sine(c, "rotation_euler", 2, 0.0, 0.02)
+    cable_sidecar = []
+    for ci, (sa, ja, sb, jb, sag, coli, radius) in enumerate(ROUTES):
+        a = jack_map.get((sa, ja))
+        b = jack_map.get((sb, jb))
+        if not a or not b:
+            print("route miss", sa, ja, sb, jb)
+            continue
+        pa = a.matrix_world.translation.copy()
+        pb = b.matrix_world.translation.copy()
+        pa.z += 0.01
+        pb.z += 0.01
+        pts = hanging_pts(pa, pb, sag)
+        cm = cables_m[coli % len(cables_m)]
+        c = cable(f"Cable_{ci}", pts, col_cables, cm, radius)
+        # metal tips
+        tip_a = cyl(f"Tip_{ci}_A", radius * 1.45, 0.018, pa, col_cables, M_TIP, verts=10)
+        tip_b = cyl(f"Tip_{ci}_B", radius * 1.45, 0.018, pb, col_cables, M_TIP, verts=10)
+        tip_a.rotation_euler = (math.radians(90), 0, 0)
+        tip_b.rotation_euler = (math.radians(90), 0, 0)
+        sleeve_a = cyl(f"Sleeve_{ci}_A", radius * 1.7, 0.012, pa + Vector((0, -0.01, 0)), col_cables, cm, verts=10)
+        sleeve_b = cyl(f"Sleeve_{ci}_B", radius * 1.7, 0.012, pb + Vector((0, -0.01, 0)), col_cables, cm, verts=10)
+        for pi, p in enumerate(pts):
+            empty = bpy.data.objects.new(f"Path_{ci}_{pi}", None)
+            empty.location = p
+            empty.empty_display_size = 0.008
+            col_cables.objects.link(empty)
+        cable_sidecar.append({
+            "name": f"Cable_{ci}",
+            "color": list(CABLE_COLORS[coli % len(CABLE_COLORS)]),
+            "points": [list(p) for p in pts],
+        })
+
+    sidecar_path = os.path.join(ROOT, "web", "cables.json")
+    with open(sidecar_path, "w", encoding="utf-8") as f:
+        json.dump({"cables": cable_sidecar}, f, indent=2)
+    print("cables", sidecar_path, len(cable_sidecar))
 
     wf = paint_waveform("HUD_Wave")
     sp = paint_spectrum("HUD_Spec")

@@ -5,10 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Modular Genesis</title>
   <meta name="description" content="An open project on modular synthesis, generative systems, and a hybrid VCV Rack + Ableton Live pipeline." />
+  <meta name="theme-color" content="#04070b" />
+  <meta property="og:title" content="Modular Genesis" />
+  <meta property="og:description" content="An open project on modular synthesis, generative systems, and a hybrid VCV Rack + Ableton Live pipeline." />
+  <meta property="og:image" content="https://alevoldon.github.io/web-hero-modular/cover.jpg" />
+  <meta property="og:url" content="https://alevoldon.github.io/web-hero-modular/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Modular Genesis" />
+  <meta name="twitter:description" content="From a signal in VCV to the visual layer." />
+  <meta name="twitter:image" content="https://alevoldon.github.io/web-hero-modular/cover.jpg" />
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="./cover.jpg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" href="./style.css?v=11" />
   <script type="importmap">
     {
       "imports": {
@@ -21,12 +33,26 @@
 </head>
 <body>
   <canvas id="stage"></canvas>
+  <div id="poster" hidden>
+    <img src="./cover.jpg" alt="Modular Genesis modular case" />
+  </div>
   <div class="veil"></div>
+
+  <div id="boot">
+    <div class="boot-mark">MODULAR GENESIS<em>///</em></div>
+    <div class="boot-bar"><span id="boot-fill"></span></div>
+    <div class="boot-status" data-i18n="bootLoad">Compiling the patch…</div>
+    <div class="boot-actions">
+      <button type="button" id="btn-enter" hidden data-i18n="bootEnter">Enter the lab</button>
+      <button type="button" id="btn-force-3d" hidden data-i18n="boot3d">Launch 3D</button>
+    </div>
+  </div>
+
   <nav>
     <div>Modular Genesis</div>
     <div class="links">
-      <a data-i18n="navCourse" href="https://alevoldon.github.io/Modular-Genesis/course">Course</a>
-      <a data-i18n="navPatches" href="https://alevoldon.github.io/Modular-Genesis/patches">Patches</a>
+      <a data-i18n="navCourse" data-i18n-href="hrefCourse" href="https://alevoldon.github.io/Modular-Genesis/course">Course</a>
+      <a data-i18n="navPatches" data-i18n-href="hrefPatches" href="https://alevoldon.github.io/Modular-Genesis/patches">Patches</a>
       <a data-i18n="navGithub" href="https://github.com/ALEVOLDON/Modular-Genesis">GitHub</a>
       <span class="lang">
         <button type="button" data-lang="en" aria-current="true">EN</button>
@@ -34,17 +60,42 @@
       </span>
     </div>
   </nav>
+
   <section class="copy">
     <div class="eyebrow" data-i18n="eyebrow">VCV Rack · Ableton Live · Audiovisual</div>
     <h1>Modular<br />Genesis<em>///</em></h1>
     <p class="lede" data-i18n="lede">An open portal on modular synthesis and generative music. Lessons, patches, and the hybrid pipeline are built as one system — from a signal in VCV to the visual layer.</p>
     <div class="actions">
-      <a class="btn primary" data-i18n="ctaCourse" href="https://alevoldon.github.io/Modular-Genesis/course">Browse the course</a>
-      <a class="btn" data-i18n="ctaPlan" href="https://alevoldon.github.io/Modular-Genesis/roadmap">Open the roadmap</a>
+      <a class="btn primary" data-i18n="ctaCourse" data-i18n-href="hrefCourse" data-shot="knobs" href="https://alevoldon.github.io/Modular-Genesis/course">Browse the course</a>
+      <a class="btn" data-i18n="ctaPlan" data-i18n-href="hrefPlan" data-shot="cables" href="https://alevoldon.github.io/Modular-Genesis/roadmap">Open the roadmap</a>
     </div>
+    <aside id="tip" hidden>
+      <div class="tip-id"></div>
+      <div class="tip-title"></div>
+      <p class="tip-lede"></p>
+      <div class="tip-actions">
+        <a class="btn primary" data-tip="lesson" target="_blank" rel="noopener">Open lesson</a>
+        <a class="btn" data-tip="patch" target="_blank" rel="noopener">Open patch</a>
+      </div>
+    </aside>
   </section>
-  <div class="meta" data-i18n="meta">Move the cursor · live scene</div>
-  <script type="module" src="./i18n.js?v=1"></script>
-  <script type="module" src="./main.js?v=9"></script>
+
+  <div class="dock">
+    <div class="shots" role="tablist" aria-label="Camera">
+      <button type="button" data-shot="overview" aria-selected="true" data-i18n="shotOverview">Overview</button>
+      <button type="button" data-shot="knobs" data-i18n="shotKnobs">Knobs</button>
+      <button type="button" data-shot="cables" data-i18n="shotCables">Cables</button>
+      <button type="button" data-shot="into" data-i18n="shotInto">Into</button>
+    </div>
+    <div class="audio-dock" role="group" aria-label="Audio">
+      <button type="button" id="btn-patch" data-i18n="audioPatch">Patch</button>
+      <button type="button" id="btn-mic" data-i18n="audioMic">Mic</button>
+      <button type="button" id="btn-mute" data-i18n="audioMute">Mute</button>
+    </div>
+  </div>
+
+  <div class="meta" data-i18n="meta">Click a module · the patch is live</div>
+
+  <script type="module" src="./main.js?v=12"></script>
 </body>
 </html>

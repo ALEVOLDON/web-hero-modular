@@ -1,60 +1,63 @@
 # Web Hero — Modular Genesis
 
-Отдельная Blender-сцена для фонового hero сайта. Не связана с `grok cli test`.
-
-Тема собрана под твои проекты: **Modular Genesis**, VCV Rack, Ableton, еврорэк, audiovisual lab.
-
-## Живой пайплайн (то, что нужно)
+Live lab landing: Blender eurorack case → Draco GLB → Three.js + GSAP, driven by a generative Web Audio patch.
 
 ```
-Blender  →  hero.glb  →  Three.js  →  GSAP
+Blender  →  hero.glb  →  Three.js  →  GSAP + Web Audio
 ```
 
-Не видео. Камера, парение и параллакс мыши крутит GSAP.
+Not a baked video. Camera shots, cable current, and knob/fader motion are live.
 
 ```bat
 cd web
 start.bat
 ```
 
-Открой http://127.0.0.1:8765
+Open http://127.0.0.1:8765
 
-| Файл | Зачем |
+## What you get
+
+| Layer | Behavior |
 |---|---|
-| `web/hero.glb` | Сцена из Blender |
-| `web/main.js` | Three.js + GSAP |
-| `export_glb.py` | Переэкспорт GLB |
+| Signal | Built-in generative patch (or mic) drives glow, faders, LEDs, bloom, cable sparks |
+| Cables | Thick hanging patch cords with metal tips and traveling current |
+| Modules | CLK / VCO / VCF / ENV / LFO / S&H / MIX / VIS faceplates |
+| Click | Hover a module → lesson + patch from the live Modular Genesis site |
+| Camera | Overview / Knobs / Cables / Into — GSAP shots, idle cycle, CTA hover |
+| Production | Loader, mobile poster, favicon, Open Graph, Draco GLB, GitHub Pages-ready |
 
-## Что внутри
+## Files
 
-| Файл | Зачем |
+| Path | Role |
 |---|---|
-| `hero_loop.blend` | Сцена, 8 секунд, кадры 1–192 |
-| `create_hero.py` | Полная пересборка с нуля |
-| `renders/still.png` | Кадр для постера |
-| `renders/loop.mp4` | Зацикленное видео для сайта |
-| `web/index.html` | Превью, как это сидит на лендинге |
+| `web/index.html` | Landing |
+| `web/main.js` | Three + GSAP + picking + shots |
+| `web/audio.js` | Generative patch + analyser |
+| `web/modules.js` | Lesson / patch URLs |
+| `web/hero.glb` | Draco-compressed case |
+| `web/cables.json` | Cable paths for current |
+| `web/cover.jpg` | Mobile poster + OG image |
+| `module_spec.py` | Shared eurorack layout |
+| `gen_panels.py` | Faceplate textures |
+| `create_hero.py` | Rebuild the blend (GPU) |
+| `export_glb.py` | Export + Draco |
 
-## Рендер только на видеокарте
-
-Скрипт включает **OPTIX / RTX 3050** и выключает CPU в Cycles. EEVEE и так идёт на GPU.
-
-Перед любым рендером:
+## Rebuild
 
 ```bat
-"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" "hero_loop.blend" --background --python lock_gpu.py
-```
-
-## Пересобрать
-
-```bat
+python gen_panels.py
 "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" --background --python create_hero.py
+"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" --background --python export_glb.py
 ```
 
-Луп (дольше):
+Renders stay on the RTX GPU (OptiX). Do not pass `--anim` unless you want the optional 8s preview movie.
+
+## GitHub Pages
+
+`web/` is the site root (relative paths, `.nojekyll`, `404.html`). Publish that folder:
 
 ```bat
-"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" --background --python create_hero.py -- --anim
+git subtree push --prefix web origin gh-pages
 ```
 
-Открыть превью: `web/index.html`.
+Or copy `web/` onto the `gh-pages` branch. After the first push, enable Pages on that branch.
