@@ -47,7 +47,7 @@ scene.add(new THREE.AmbientLight(0x6f86a0, 0.18));
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.28, 0.4, 0.88);
+const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.42, 0.45, 0.78);
 composer.addPass(bloom);
 
 const root = new THREE.Group();
@@ -77,8 +77,8 @@ function frameObject(object) {
 function pulseControl(state) {
   const rest = Math.random() < 0.35;
   gsap.to(state, {
-    intensity: rest ? 0.04 + Math.random() * 0.06 : 0.22 + Math.random() * 0.38,
-    duration: 0.8 + Math.random() * 2.2,
+    intensity: rest ? 0.1 + Math.random() * 0.12 : 0.85 + Math.random() * 0.75,
+    duration: 0.55 + Math.random() * 1.4,
     ease: "sine.inOut",
     onUpdate: () => {
       state.mat.emissiveIntensity = state.intensity;
@@ -101,19 +101,17 @@ function lightModularControls(model) {
   controls.forEach((child, i) => {
     const hex = hues[i % hues.length];
     const mat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(hex).multiplyScalar(0.45),
-      emissive: new THREE.Color(hex).multiplyScalar(0.35),
-      emissiveIntensity: 0.12,
-      metalness: 0.35,
-      roughness: 0.55,
+      color: new THREE.Color(hex).multiplyScalar(0.38),
+      emissive: new THREE.Color(hex).multiplyScalar(0.55),
+      emissiveIntensity: 0.2,
+      metalness: 0.28,
+      roughness: 0.5,
       toneMapped: true,
     });
     child.material = mat;
-    const state = { mat, intensity: 0.12 };
+    const state = { mat, intensity: 0.2 };
     gsap.delayedCall(Math.random() * 1.8, () => pulseControl(state));
   });
-  const meta = document.querySelector(".meta");
-  if (meta) meta.textContent = `${controls.length} knobs / faders pulsing`;
   console.info("[hero] controls", controls.length);
 }
 
