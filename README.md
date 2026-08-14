@@ -15,6 +15,8 @@ start.bat
 
 Open http://127.0.0.1:8765
 
+Live: https://alevoldon.github.io/web-hero-modular/
+
 ## What you get
 
 | Layer | Behavior |
