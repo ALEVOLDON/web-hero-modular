@@ -1,101 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Modular Genesis</title>
-  <meta name="description" content="An open project on modular synthesis, generative systems, and a hybrid VCV Rack + Ableton Live pipeline." />
-  <meta name="theme-color" content="#04070b" />
-  <meta property="og:title" content="Modular Genesis" />
-  <meta property="og:description" content="An open project on modular synthesis, generative systems, and a hybrid VCV Rack + Ableton Live pipeline." />
-  <meta property="og:image" content="https://alevoldon.github.io/web-hero-modular/cover.jpg" />
-  <meta property="og:url" content="https://alevoldon.github.io/web-hero-modular/" />
-  <meta property="og:type" content="website" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Modular Genesis" />
-  <meta name="twitter:description" content="From a signal in VCV to the visual layer." />
-  <meta name="twitter:image" content="https://alevoldon.github.io/web-hero-modular/cover.jpg" />
-  <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="./cover.jpg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./style.css?v=11" />
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
-        "gsap": "https://cdn.jsdelivr.net/npm/gsap@3.12.7/+esm"
-      }
-    }
-  </script>
-</head>
-<body>
-  <canvas id="stage"></canvas>
-  <div id="poster" hidden>
-    <img src="./cover.jpg" alt="Modular Genesis modular case" />
-  </div>
-  <div class="veil"></div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Modular Genesis — Eurorack Synthesizer & Generative Music</title>
+    <meta
+      name="description"
+      content="An open portal on modular synthesis, generative systems, and a hybrid VCV Rack + Ableton Live pipeline."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <canvas id="stage"></canvas>
+    <div class="vignette"></div>
 
-  <div id="boot">
-    <div class="boot-mark">MODULAR GENESIS<em>///</em></div>
-    <div class="boot-bar"><span id="boot-fill"></span></div>
-    <div class="boot-status" data-i18n="bootLoad">Compiling the patch…</div>
-    <div class="boot-actions">
-      <button type="button" id="btn-enter" hidden data-i18n="bootEnter">Enter the lab</button>
-      <button type="button" id="btn-force-3d" hidden data-i18n="boot3d">Launch 3D</button>
-    </div>
-  </div>
-
-  <nav>
-    <div>Modular Genesis</div>
-    <div class="links">
-      <a data-i18n="navCourse" data-i18n-href="hrefCourse" href="https://alevoldon.github.io/Modular-Genesis/course">Course</a>
-      <a data-i18n="navPatches" data-i18n-href="hrefPatches" href="https://alevoldon.github.io/Modular-Genesis/patches">Patches</a>
-      <a data-i18n="navGithub" href="https://github.com/ALEVOLDON/Modular-Genesis">GitHub</a>
-      <span class="lang">
-        <button type="button" data-lang="en" aria-current="true">EN</button>
-        <button type="button" data-lang="ru">RU</button>
-      </span>
-    </div>
-  </nav>
-
-  <section class="copy">
-    <div class="eyebrow" data-i18n="eyebrow">VCV Rack · Ableton Live · Audiovisual</div>
-    <h1>Modular<br />Genesis<em>///</em></h1>
-    <p class="lede" data-i18n="lede">An open portal on modular synthesis and generative music. Lessons, patches, and the hybrid pipeline are built as one system — from a signal in VCV to the visual layer.</p>
-    <div class="actions">
-      <a class="btn primary" data-i18n="ctaCourse" data-i18n-href="hrefCourse" data-shot="knobs" href="https://alevoldon.github.io/Modular-Genesis/course">Browse the course</a>
-      <a class="btn" data-i18n="ctaPlan" data-i18n-href="hrefPlan" data-shot="cables" href="https://alevoldon.github.io/Modular-Genesis/roadmap">Open the roadmap</a>
-    </div>
-    <aside id="tip" hidden>
-      <div class="tip-id"></div>
-      <div class="tip-title"></div>
-      <p class="tip-lede"></p>
-      <div class="tip-actions">
-        <a class="btn primary" data-tip="lesson" target="_blank" rel="noopener">Open lesson</a>
-        <a class="btn" data-tip="patch" target="_blank" rel="noopener">Open patch</a>
+    <!-- Navigation Header -->
+    <nav>
+      <div class="brand">
+        MODULAR GENESIS<em>///</em>
       </div>
-    </aside>
-  </section>
 
-  <div class="dock">
-    <div class="shots" role="tablist" aria-label="Camera">
-      <button type="button" data-shot="overview" aria-selected="true" data-i18n="shotOverview">Overview</button>
-      <button type="button" data-shot="knobs" data-i18n="shotKnobs">Knobs</button>
-      <button type="button" data-shot="cables" data-i18n="shotCables">Cables</button>
-      <button type="button" data-shot="into" data-i18n="shotInto">Into</button>
+      <div class="nav-center">
+        <div class="nav-links">
+          <a id="nav-course" href="https://alevoldon.github.io/Modular-Genesis/course" data-i18n="navCourse" data-i18n-href="hrefCourse" target="_blank" rel="noopener">Course</a>
+          <a id="nav-patches" href="https://alevoldon.github.io/Modular-Genesis/patches" data-i18n="navPatches" data-i18n-href="hrefPatches" target="_blank" rel="noopener">Patches</a>
+          <a id="nav-github" href="https://github.com/ALEVOLDON/Modular-Genesis" data-i18n="navGithub" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </div>
+
+      <div class="nav-right">
+        <!-- Interactive Mode Switcher: Explore vs Learn -->
+        <div class="segmented" id="seg-mode" role="tablist">
+          <button id="mode-look" role="tab" aria-selected="true" data-i18n="modeLook">Explore</button>
+          <button id="mode-learn" role="tab" aria-selected="false" data-i18n="modeLearn">Learn</button>
+        </div>
+
+        <!-- Language Switcher: EN / RU -->
+        <div class="segmented" id="seg-lang" role="radiogroup">
+          <button id="lang-en" role="radio" aria-checked="true">EN</button>
+          <button id="lang-ru" role="radio" aria-checked="false">RU</button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Hero Content Overlay -->
+    <main class="hero-content">
+      <div class="eyebrow" data-i18n="eyebrow">VCV Rack · Ableton Live · Audiovisual</div>
+      <h1>MODULAR<br />GENESIS<em>///</em></h1>
+      <p class="lede" data-i18n="lede">
+        An open portal on modular synthesis and generative music. Lessons, patches, and the hybrid pipeline are built as one system — from a signal in VCV to the visual layer.
+      </p>
+
+      <div class="hero-actions">
+        <a id="cta-course" class="btn primary" href="https://alevoldon.github.io/Modular-Genesis/course" data-i18n="ctaCourse" data-i18n-href="hrefCourse" target="_blank" rel="noopener">
+          Browse the course
+        </a>
+        <a id="cta-plan" class="btn" href="https://alevoldon.github.io/Modular-Genesis/roadmap" data-i18n="ctaPlan" data-i18n-href="hrefPlan" target="_blank" rel="noopener">
+          Open the roadmap
+        </a>
+      </div>
+
+      <!-- Live Interactive Module Inspector HUD -->
+      <div id="inspector" class="inspector-card" style="display: none;">
+        <div class="card-header">
+          <span class="card-badge" id="card-badge">● CLK</span>
+          <span class="card-role" id="card-role">Master Clock</span>
+        </div>
+        <h3 class="card-title" id="card-title">Master Clock & Sequencer</h3>
+        <p class="card-desc" id="card-desc">
+          Clock, reset, trigger, and gate — the spine of a generative system.
+        </p>
+        <div class="card-actions">
+          <a id="card-lesson" class="btn primary" href="#" target="_blank" rel="noopener" data-i18n="tipLesson">
+            Open lesson →
+          </a>
+          <a id="card-patch" class="btn" href="#" target="_blank" rel="noopener" data-i18n="tipPatch">
+            Open patch ↗
+          </a>
+        </div>
+      </div>
+    </main>
+
+    <!-- Focus Reset Button (Appears when zoomed in on a module) -->
+    <button id="btn-unfocus" class="btn" style="display: none;">
+      ← <span data-i18n="shotOverview">Overview</span>
+    </button>
+
+    <!-- Bottom Controls Dock -->
+    <footer class="dock">
+      <!-- Camera Angle Presets -->
+      <div class="dock-group" id="dock-shots">
+        <button class="dock-btn" data-shot="overview" aria-selected="true" data-i18n="shotOverview">Overview</button>
+        <button class="dock-btn" data-shot="knobs" aria-selected="false" data-i18n="shotKnobs">Controls</button>
+        <button class="dock-btn" data-shot="cables" aria-selected="false" data-i18n="shotCables">Patch Bay</button>
+        <button class="dock-btn" data-shot="into" aria-selected="false" data-i18n="shotInto">Macro</button>
+      </div>
+
+      <!-- Sound Synthesis Generator Controls -->
+      <div class="dock-group" id="dock-audio">
+        <button class="dock-btn" id="btn-patch" data-i18n="audioPatch">Patch</button>
+        <button class="dock-btn" id="btn-mic" data-i18n="audioMic">Mic</button>
+        <button class="dock-btn" id="btn-mute" aria-selected="true" data-i18n="audioMute">Mute</button>
+      </div>
+
+      <!-- Interactive 3D Hint -->
+      <div class="dock-hint" id="dock-hint">
+        <span></span>
+        <div id="meta-text" data-i18n="metaLook">Move cursor for 3D depth · Click module to inspect</div>
+      </div>
+    </footer>
+
+    <!-- Boot Loader Screen -->
+    <div id="boot">
+      <div class="boot-mark">MODULAR GENESIS<em>///</em></div>
+      <div class="boot-bar"><span id="boot-fill"></span></div>
+      <div class="boot-status" id="boot-status" data-i18n="bootLoad">Compiling 3D Eurorack rack…</div>
+      <button class="btn primary" id="btn-enter" style="display: none;" data-i18n="bootEnter">
+        Enter the lab
+      </button>
     </div>
-    <div class="audio-dock" role="group" aria-label="Audio">
-      <button type="button" id="btn-patch" data-i18n="audioPatch">Patch</button>
-      <button type="button" id="btn-mic" data-i18n="audioMic">Mic</button>
-      <button type="button" id="btn-mute" data-i18n="audioMute">Mute</button>
-    </div>
-  </div>
 
-  <div class="meta" data-i18n="meta">Click a module · the patch is live</div>
-
-  <script type="module" src="./main.js?v=12"></script>
-</body>
+    <!-- Three.js + GSAP + App Logic -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+          "gsap": "https://unpkg.com/gsap@3.12.5/index.js"
+        }
+      }
+    </script>
+    <script type="module" src="main.js"></script>
+  </body>
 </html>
