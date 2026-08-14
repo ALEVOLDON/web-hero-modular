@@ -6,3 +6,7 @@ renders/frames/
 *.log
 Thumbs.db
 .DS_Store
+
+# Intermediate CAD conversion artifacts
+fusion_imported.glb
+fusion_separated.glb
