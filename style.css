@@ -1,7 +1,7 @@
 :root {
   --bg: #06090e;
-  --bg-surface: rgba(11, 17, 26, 0.78);
-  --bg-card: rgba(15, 23, 36, 0.88);
+  --bg-surface: rgba(11, 17, 26, 0.82);
+  --bg-card: rgba(15, 23, 36, 0.92);
   --border: rgba(255, 255, 255, 0.08);
   --border-active: rgba(34, 211, 238, 0.45);
   --text-main: #f1f5f9;
@@ -32,6 +32,7 @@ html, body {
   font-family: var(--sans);
   -webkit-font-smoothing: antialiased;
   user-select: none;
+  touch-action: none;
 }
 
 canvas#stage {
@@ -42,29 +43,29 @@ canvas#stage {
   display: block;
   z-index: 1;
   outline: none;
+  touch-action: none;
 }
 
-/* Subtle atmospheric vignette */
 .vignette {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 2;
-  background: radial-gradient(circle at 50% 50%, transparent 40%, rgba(4, 7, 12, 0.72) 100%);
+  background: radial-gradient(circle at 50% 50%, transparent 40%, rgba(4, 7, 12, 0.75) 100%);
 }
 
-/* Navigation */
+/* Navigation Header */
 nav {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: 64px;
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 32px;
-  z-index: 10;
+  padding: 0 28px;
+  z-index: 20;
   pointer-events: none;
 }
 
@@ -75,13 +76,14 @@ nav > * {
 .brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-family: var(--mono);
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-main);
+  white-space: nowrap;
 }
 
 .brand em {
@@ -92,18 +94,18 @@ nav > * {
 .nav-center {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 20px;
 }
 
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 18px;
 }
 
 .nav-links a {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 11.5px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -118,13 +120,13 @@ nav > * {
 .nav-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .segmented {
   display: inline-flex;
   padding: 3px;
-  background: rgba(15, 23, 36, 0.7);
+  background: rgba(15, 23, 36, 0.75);
   border: 1px solid var(--border);
   border-radius: 20px;
   backdrop-filter: blur(12px);
@@ -139,32 +141,33 @@ nav > * {
   font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  padding: 6px 14px;
+  padding: 5px 12px;
   border-radius: 16px;
   cursor: pointer;
   transition: all 0.2s var(--ease-out);
 }
 
 .segmented button[aria-selected="true"],
-.segmented button[aria-current="true"] {
+.segmented button[aria-checked="true"] {
   background: var(--cyan);
   color: #04070b;
   font-weight: 600;
-  box-shadow: 0 0 16px rgba(34, 211, 238, 0.35);
+  box-shadow: 0 0 14px rgba(34, 211, 238, 0.35);
 }
 
 /* Hero Content Area */
 .hero-content {
   position: fixed;
-  top: 96px;
-  left: 48px;
-  width: 440px;
-  max-width: calc(100vw - 96px);
-  z-index: 5;
+  top: 84px;
+  left: 36px;
+  width: 420px;
+  max-width: calc(100vw - 72px);
+  z-index: 10;
   pointer-events: none;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .hero-content > * {
@@ -176,7 +179,7 @@ nav > * {
   align-items: center;
   gap: 8px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 10.5px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--cyan);
@@ -193,7 +196,7 @@ nav > * {
 }
 
 h1 {
-  font-size: clamp(38px, 4.8vw, 56px);
+  font-size: clamp(32px, 4.4vw, 52px);
   line-height: 1.04;
   font-weight: 600;
   letter-spacing: -0.03em;
@@ -206,17 +209,17 @@ h1 em {
 }
 
 .lede {
-  font-size: 14.5px;
-  line-height: 1.6;
+  font-size: 14px;
+  line-height: 1.55;
   color: var(--text-muted);
-  max-width: 400px;
+  max-width: 380px;
 }
 
 .hero-actions {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-top: 6px;
+  gap: 12px;
+  margin-top: 4px;
 }
 
 .btn {
@@ -224,24 +227,24 @@ h1 em {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px 20px;
+  padding: 9px 18px;
   border-radius: 8px;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 500;
   letter-spacing: 0.05em;
   text-decoration: none;
   cursor: pointer;
   transition: all 0.2s var(--ease-out);
   border: 1px solid var(--border);
-  background: rgba(15, 23, 36, 0.65);
+  background: rgba(15, 23, 36, 0.7);
   color: var(--text-main);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
 }
 
 .btn:hover {
   background: rgba(26, 38, 56, 0.85);
-  border-color: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.2);
   transform: translateY(-1px);
 }
 
@@ -250,41 +253,40 @@ h1 em {
   color: #04070b;
   border-color: var(--cyan);
   font-weight: 600;
-  box-shadow: 0 4px 20px rgba(34, 211, 238, 0.25);
+  box-shadow: 0 4px 16px rgba(34, 211, 238, 0.25);
 }
 
 .btn.primary:hover {
   background: #38e1fc;
-  box-shadow: 0 6px 24px rgba(34, 211, 238, 0.4);
+  box-shadow: 0 6px 22px rgba(34, 211, 238, 0.4);
 }
 
-/* Interactive Inspector Card */
+/* Interactive Inspector HUD Card / Bottom Sheet on Mobile */
 .inspector-card {
-  margin-top: 10px;
-  padding: 18px 20px;
+  padding: 16px 18px;
   background: var(--bg-card);
   border: 1px solid var(--border-active);
   border-radius: 12px;
-  backdrop-filter: blur(16px);
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45), 0 0 20px rgba(34, 211, 238, 0.12);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5), 0 0 20px rgba(34, 211, 238, 0.12);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   animation: cardFade 0.25s var(--ease-out);
   pointer-events: auto;
 }
 
 @keyframes cardFade {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .card-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  padding-bottom: 8px;
+  padding-bottom: 6px;
 }
 
 .card-badge {
@@ -296,50 +298,56 @@ h1 em {
   display: flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
 }
 
 .card-role {
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 10px;
   color: var(--text-dim);
   text-transform: uppercase;
+  margin-right: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .card-title {
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 600;
   color: #ffffff;
 }
 
 .card-desc {
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--text-muted);
 }
 
 .card-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   margin-top: 4px;
 }
 
 .card-actions .btn {
-  padding: 7px 14px;
-  font-size: 11px;
+  padding: 7px 12px;
+  font-size: 10.5px;
   flex: 1;
 }
 
 /* Bottom Controls Dock */
 .dock {
   position: fixed;
-  bottom: 28px;
-  left: 48px;
-  right: 48px;
+  bottom: 24px;
+  left: 28px;
+  right: 28px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  z-index: 10;
+  z-index: 20;
   pointer-events: none;
+  gap: 12px;
 }
 
 .dock > * {
@@ -349,13 +357,13 @@ h1 em {
 .dock-group {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   background: var(--bg-surface);
   border: 1px solid var(--border);
-  padding: 6px 10px;
-  border-radius: 24px;
+  padding: 5px 8px;
+  border-radius: 20px;
   backdrop-filter: blur(16px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .dock-btn {
@@ -363,14 +371,15 @@ h1 em {
   border: none;
   color: var(--text-muted);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 500;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  padding: 6px 12px;
+  padding: 5px 10px;
   border-radius: 14px;
   cursor: pointer;
   transition: all 0.2s var(--ease-out);
+  white-space: nowrap;
 }
 
 .dock-btn:hover {
@@ -378,22 +387,22 @@ h1 em {
   background: rgba(255, 255, 255, 0.06);
 }
 
-.dock-btn[aria-selected="true"],
-.dock-btn[aria-pressed="true"] {
-  background: rgba(34, 211, 238, 0.16);
+.dock-btn[aria-selected="true"] {
+  background: rgba(34, 211, 238, 0.18);
   color: var(--cyan);
   font-weight: 600;
 }
 
 .dock-hint {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 10.5px;
   letter-spacing: 0.08em;
   color: var(--text-dim);
   text-transform: uppercase;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  white-space: nowrap;
 }
 
 .dock-hint span {
@@ -402,15 +411,19 @@ h1 em {
   height: 5px;
   border-radius: 50%;
   background: var(--cyan);
-  animation: pulseDot 2s infinite ease-in-out;
 }
 
-@keyframes pulseDot {
-  0%, 100% { opacity: 0.4; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1.2); }
+/* Focus Reset Button */
+#btn-unfocus {
+  position: fixed;
+  top: 84px;
+  right: 28px;
+  z-index: 25;
+  padding: 7px 14px;
+  font-size: 11px;
 }
 
-/* Boot / Loader Overlay */
+/* Boot Screen */
 #boot {
   position: fixed;
   inset: 0;
@@ -420,8 +433,8 @@ h1 em {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 20px;
-  transition: opacity 0.6s var(--ease-out), visibility 0.6s;
+  gap: 18px;
+  transition: opacity 0.5s var(--ease-out), visibility 0.5s;
 }
 
 #boot.is-gone {
@@ -432,9 +445,9 @@ h1 em {
 
 .boot-mark {
   font-family: var(--mono);
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: #ffffff;
 }
@@ -445,7 +458,7 @@ h1 em {
 }
 
 .boot-bar {
-  width: 240px;
+  width: 220px;
   height: 3px;
   background: rgba(255, 255, 255, 0.08);
   border-radius: 2px;
@@ -463,41 +476,114 @@ h1 em {
 
 .boot-status {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--text-muted);
-  letter-spacing: 0.06em;
 }
 
 #btn-enter {
-  margin-top: 10px;
-  padding: 12px 28px;
-  font-size: 13px;
+  margin-top: 8px;
+  padding: 10px 24px;
+  font-size: 12px;
 }
 
-/* Focus Back Button */
-#btn-unfocus {
-  position: fixed;
-  top: 96px;
-  right: 48px;
-  z-index: 15;
-  padding: 8px 16px;
-  font-size: 11px;
-}
+/* Mobile Responsive Optimization (<= 768px) */
+@media (max-width: 768px) {
+  nav {
+    height: 52px;
+    padding: 0 14px;
+  }
 
-/* Mobile Responsiveness */
-@media (max-width: 900px) {
-  nav { padding: 0 20px; }
+  .brand {
+    font-size: 11.5px;
+    letter-spacing: 0.08em;
+  }
+
+  .nav-center {
+    display: none; /* Collapsed on mobile to prevent clutter */
+  }
+
+  .nav-right {
+    gap: 8px;
+  }
+
+  .segmented button {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+
   .hero-content {
-    top: 76px;
-    left: 20px;
-    max-width: calc(100vw - 40px);
-  }
-  .dock {
-    left: 20px;
-    right: 20px;
-    bottom: 16px;
-    flex-direction: column;
+    top: 60px;
+    left: 16px;
+    right: 16px;
+    width: auto;
+    max-width: none;
     gap: 10px;
+    background: linear-gradient(180deg, rgba(6, 9, 14, 0.85) 0%, rgba(6, 9, 14, 0) 100%);
+    padding-bottom: 12px;
+    pointer-events: none;
   }
-  .dock-hint { display: none; }
+
+  .eyebrow {
+    font-size: 9.5px;
+    letter-spacing: 0.12em;
+  }
+
+  h1 {
+    font-size: 26px;
+    line-height: 1.05;
+  }
+
+  .lede {
+    display: none; /* Hide long paragraph on mobile so 3D synth is fully visible */
+  }
+
+  .hero-actions {
+    margin-top: 0;
+    gap: 8px;
+  }
+
+  .hero-actions .btn {
+    padding: 6px 12px;
+    font-size: 10.5px;
+  }
+
+  /* Bottom Sheet Drawer for Inspector on Mobile */
+  .inspector-card {
+    position: fixed;
+    bottom: 74px;
+    left: 14px;
+    right: 14px;
+    z-index: 30;
+    margin-top: 0;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(34, 211, 238, 0.15);
+  }
+
+  .dock {
+    left: 12px;
+    right: 12px;
+    bottom: 14px;
+    gap: 6px;
+    justify-content: center;
+  }
+
+  .dock-group {
+    padding: 4px 6px;
+    gap: 4px;
+  }
+
+  .dock-btn {
+    padding: 4px 8px;
+    font-size: 9.5px;
+  }
+
+  .dock-hint {
+    display: none;
+  }
+
+  #btn-unfocus {
+    top: 58px;
+    right: 14px;
+    padding: 5px 10px;
+    font-size: 10px;
+  }
 }
