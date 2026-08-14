@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Modular Genesis — live hero</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+        "gsap": "https://cdn.jsdelivr.net/npm/gsap@3.12.7/+esm"
+      }
+    }
+  </script>
+</head>
+<body>
+  <canvas id="stage"></canvas>
+  <div class="veil"></div>
+  <nav>
+    <div>Modular Genesis</div>
+    <div class="links">
+      <a href="https://alevoldon.github.io/Modular-Genesis/">Site</a>
+      <a href="https://alevoldon.github.io/Modular-Genesis/ru/course">Курс</a>
+      <a href="https://github.com/ALEVOLDON/Modular-Genesis">GitHub</a>
+    </div>
+  </nav>
+  <section class="copy">
+    <div class="eyebrow">Blender → GLB → Three.js → GSAP</div>
+    <h1>Modular<br />Genesis<em>///</em></h1>
+    <p class="lede">Сцена из Blender крутится живьём в браузере. Камера, свет и парение — GSAP, не запечённый ролик.</p>
+    <div class="actions">
+      <a class="btn primary" href="https://alevoldon.github.io/Modular-Genesis/">Открыть платформу</a>
+      <a class="btn" href="https://alevoldon.github.io/Modular-Genesis/ru/">RU</a>
+    </div>
+  </section>
+  <div class="meta">Move mouse · GPU canvas</div>
+  <script type="module" src="./main.js?v=6"></script>
+</body>
+</html>
