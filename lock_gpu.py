@@ -1,7 +1,10 @@
 """Force this .blend + Blender user prefs onto NVIDIA GPU. CPU stays off."""
 import bpy
 
-BLEND = r"C:\Users\alevo\Desktop\web-hero-modular\hero_loop.blend"
+import os
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
+BLEND = os.path.join(ROOT, "hero_loop.blend")
 
 
 def lock():
