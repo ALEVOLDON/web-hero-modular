@@ -77,11 +77,11 @@ function getShotConfig(shotKey) {
 
 // Module Focus Zoom Targets (X coordinate in rack space)
 const MODULE_BOUNDS = {
-  CLK: { x: -0.44 },
-  VCO: { x: -0.30 },
-  FLT: { x: -0.17 },
-  ENV: { x: -0.05 },
-  LFO: { x: 0.06 },
+  CLK: { x: -0.48 },
+  VCO: { x: -0.33 },
+  FLT: { x: -0.20 },
+  ENV: { x: -0.07 },
+  LFO: { x: 0.05 },
   RND: { x: 0.17 },
   MIX: { x: 0.30 },
   VIS: { x: 0.45 },
@@ -219,7 +219,7 @@ function loadModel() {
         if (name.startsWith("Knob_")) {
           controls.push({
             mesh: child,
-            baseZ: child.rotation.z,
+            baseY: child.rotation.y,
             name: name,
             speed: (Math.random() * 0.8 + 0.4) * (Math.random() < 0.5 ? 1 : -1),
           });
@@ -228,7 +228,7 @@ function loadModel() {
         if (name.startsWith("FaderCap_")) {
           faders.push({
             mesh: child,
-            baseY: child.position.y,
+            baseZ: child.position.z,
             name: name,
           });
         }
@@ -239,13 +239,13 @@ function loadModel() {
 
         if (name.startsWith("Screen_")) {
           if (name.includes("VIS")) {
-            child.material = new THREE.MeshBasicMaterial({ map: scopeVIS.texture });
+            child.material = new THREE.MeshBasicMaterial({ map: scopeVIS.texture, side: THREE.DoubleSide });
             screens.vis = child;
           } else if (name.includes("VCO")) {
-            child.material = new THREE.MeshBasicMaterial({ map: scopeVCO.texture });
+            child.material = new THREE.MeshBasicMaterial({ map: scopeVCO.texture, side: THREE.DoubleSide });
             screens.vco = child;
           } else if (name.includes("CLK")) {
-            child.material = new THREE.MeshBasicMaterial({ map: scopeCLK.texture });
+            child.material = new THREE.MeshBasicMaterial({ map: scopeCLK.texture, side: THREE.DoubleSide });
             screens.clk = child;
           }
         }
@@ -262,6 +262,10 @@ function loadModel() {
 
       setupCablePulses();
       rackGroup.add(model);
+      window.__faders = faders;
+      window.__controls = controls;
+      window.__model = model;
+      window.__rackGroup = rackGroup;
 
       if (fill) fill.style.width = "100%";
       if (status) status.textContent = t("bootReady");
@@ -412,7 +416,20 @@ function setupInteractivity() {
 
   document.getElementById("btn-unfocus")?.addEventListener("click", () => unfocusModule());
   document.getElementById("card-close")?.addEventListener("click", () => hideInspector());
+
+  const card = document.getElementById("inspector");
+  card?.addEventListener("mouseenter", () => {
+    isHoveringCard = true;
+  });
+  card?.addEventListener("mouseleave", () => {
+    isHoveringCard = false;
+    if (!hoveredModule && !focusedModule) {
+      hideInspector();
+    }
+  });
 }
+
+let isHoveringCard = false;
 
 function setMode(mode) {
   currentMode = mode;
@@ -424,8 +441,12 @@ function setMode(mode) {
     metaText.textContent = mode === "look" ? t("metaLook") : t("metaLearn");
   }
 
-  if (mode === "look" && !focusedModule) {
+  if (mode === "look") {
     hideInspector();
+  } else if (mode === "learn") {
+    if (hoveredModule || focusedModule) {
+      updateInspector(hoveredModule || focusedModule);
+    }
   }
 }
 
@@ -457,7 +478,7 @@ function setShot(shotKey) {
 
   gsap.to(rackGroup.position, {
     x: shot.rackX,
-    y: 0.04,
+    y: 0.0,
     z: 0.0,
     duration: 1.2,
     ease: "power3.inOut",
@@ -469,7 +490,7 @@ function setLanguage(lang) {
   document.getElementById("lang-en")?.setAttribute("aria-checked", lang === "en");
   document.getElementById("lang-ru")?.setAttribute("aria-checked", lang === "ru");
   applyLang(lang);
-  if (hoveredModule) updateInspector(hoveredModule);
+  if (hoveredModule || focusedModule) updateInspector(hoveredModule || focusedModule);
 }
 
 function checkRaycast() {
@@ -485,18 +506,20 @@ function checkRaycast() {
       if (hoveredModule !== modId) {
         hoveredModule = modId;
         highlightModule(modId);
-        updateInspector(modId);
+        if (currentMode === "learn" || focusedModule) {
+          updateInspector(modId);
+        } else {
+          hideInspector();
+        }
       }
       return;
     }
   }
 
-  if (hoveredModule && !focusedModule) {
+  if (hoveredModule && !focusedModule && !isHoveringCard) {
     unhighlightAll();
     hoveredModule = null;
-    if (currentMode === "look" && !isMobile()) {
-      hideInspector();
-    }
+    hideInspector();
   }
 }
 
@@ -524,7 +547,67 @@ function unhighlightAll() {
   });
 }
 
+function getModuleScreenPosition(modId) {
+  if (!model || !camera) return null;
+  const modObj = model.getObjectByName(`Module_${modId}`) || model.getObjectByName(`Module_${modId}_Body`);
+  const v = new THREE.Vector3();
+  if (modObj) {
+    modObj.getWorldPosition(v);
+    v.z -= 0.14; // Top edge of the module faceplate in glTF coordinates
+  } else {
+    const bound = MODULE_BOUNDS[modId];
+    if (!bound) return null;
+    v.set(bound.x, 0.0, -0.14);
+    v.applyMatrix4(rackGroup.matrixWorld);
+  }
+
+  v.project(camera);
+  return {
+    x: (v.x * 0.5 + 0.5) * window.innerWidth,
+    y: (-v.y * 0.5 + 0.5) * window.innerHeight,
+  };
+}
+
+function positionInspector(modId) {
+  const card = document.getElementById("inspector");
+  if (!card || !modId) return;
+
+  if (isMobile()) {
+    card.style.left = "14px";
+    card.style.right = "14px";
+    card.style.top = "auto";
+    card.style.bottom = "74px";
+    return;
+  }
+
+  const pos = getModuleScreenPosition(modId);
+  if (!pos) return;
+
+  const cardW = 310;
+  const cardH = card.offsetHeight || 160;
+
+  // Center horizontally over module
+  let left = pos.x - cardW / 2;
+  left = Math.max(16, Math.min(window.innerWidth - cardW - 16, left));
+
+  // Place above module if clearance, otherwise place below
+  let top = pos.y - cardH - 16;
+  if (top < 65) {
+    top = Math.min(window.innerHeight - cardH - 80, pos.y + 40);
+  }
+
+  card.style.left = `${Math.round(left)}px`;
+  card.style.top = `${Math.round(top)}px`;
+  card.style.bottom = "auto";
+  card.style.right = "auto";
+}
+
 function updateInspector(modId) {
+  if (currentMode === "look" && !focusedModule) {
+    hideInspector();
+    return;
+  }
+
   const mod = MODULES[modId];
   if (!mod) return;
 
@@ -539,7 +622,6 @@ function updateInspector(modId) {
 
   if (!card) return;
 
-  card.style.display = "flex";
   if (badge) badge.textContent = `● ${mod.id}`;
   if (role) role.textContent = mod.role[lang] || mod.role.en;
   if (title) title.textContent = mod.name[lang] || mod.name.en;
@@ -547,11 +629,23 @@ function updateInspector(modId) {
 
   if (lessonBtn) lessonBtn.href = mod.lesson[lang] || mod.lesson.en;
   if (patchBtn) patchBtn.href = mod.patch[lang] || mod.patch.en;
+
+  card.style.display = "flex";
+  positionInspector(modId);
+  requestAnimationFrame(() => {
+    card.classList.add("visible");
+  });
 }
 
 function hideInspector() {
   const card = document.getElementById("inspector");
-  if (card) card.style.display = "none";
+  if (!card) return;
+  card.classList.remove("visible");
+  setTimeout(() => {
+    if (!card.classList.contains("visible")) {
+      card.style.display = "none";
+    }
+  }, 200);
 }
 
 function focusModule(modId) {
@@ -560,7 +654,9 @@ function focusModule(modId) {
   if (!bound) return;
 
   document.getElementById("btn-unfocus").style.display = "inline-flex";
-  updateInspector(modId);
+  if (currentMode === "learn") {
+    updateInspector(modId);
+  }
 
   const mobile = isMobile();
   const targetX = mobile ? bound.x : bound.x + 0.15;
@@ -595,7 +691,7 @@ function unfocusModule() {
   focusedModule = null;
   document.getElementById("btn-unfocus").style.display = "none";
   setShot(currentShot);
-  if (currentMode === "look" && !isMobile()) {
+  if (currentMode === "look") {
     hideInspector();
   }
 }
@@ -630,55 +726,101 @@ function updateAudioButtons(mode) {
 }
 
 function renderScreenWaves(audioSample, time) {
+  // 1. VCO Oscilloscope Screen
   const ctxVCO = scopeVCO.ctx;
-  ctxVCO.fillStyle = "rgba(4, 10, 16, 0.35)";
-  ctxVCO.fillRect(0, 0, scopeVCO.canvas.width, scopeVCO.canvas.height);
-  ctxVCO.strokeStyle = "#38bdf8";
-  ctxVCO.lineWidth = 2.5;
-  ctxVCO.beginPath();
   const w1 = scopeVCO.canvas.width;
   const h1 = scopeVCO.canvas.height;
+  ctxVCO.fillStyle = "#050b14";
+  ctxVCO.fillRect(0, 0, w1, h1);
+
+  // Background Reticle Grid
+  ctxVCO.strokeStyle = "rgba(56, 189, 248, 0.15)";
+  ctxVCO.lineWidth = 1;
+  ctxVCO.beginPath();
+  for (let gy = 20; gy < h1; gy += 24) {
+    ctxVCO.moveTo(0, gy);
+    ctxVCO.lineTo(w1, gy);
+  }
+  for (let gx = 32; gx < w1; gx += 32) {
+    ctxVCO.moveTo(gx, 0);
+    ctxVCO.lineTo(gx, h1);
+  }
+  ctxVCO.stroke();
+
+  // Oscilloscope Cyan Waveform
+  ctxVCO.strokeStyle = "#38bdf8";
+  ctxVCO.lineWidth = 3;
+  ctxVCO.shadowColor = "#38bdf8";
+  ctxVCO.shadowBlur = 10;
+  ctxVCO.beginPath();
   for (let x = 0; x < w1; x++) {
     const t = (x / w1) * Math.PI * 4 + time * 6;
-    const wave = Math.sin(t) + 0.4 * Math.sin(t * 2.3 + audioSample.mid * 5);
-    const y = h1 / 2 + wave * (h1 * 0.32 * (0.4 + audioSample.rms * 1.5));
+    const wave = Math.sin(t) + 0.35 * Math.sin(t * 2.3 + (audioSample.mid || 0) * 4);
+    const amp = h1 * 0.32 * (0.6 + (audioSample.rms || 0.2) * 1.5);
+    const y = h1 / 2 + wave * amp;
     if (x === 0) ctxVCO.moveTo(x, y);
     else ctxVCO.lineTo(x, y);
   }
   ctxVCO.stroke();
+  ctxVCO.shadowBlur = 0;
   scopeVCO.texture.needsUpdate = true;
 
+  // 2. VIS Realtime Spectrum Analyzer
   const ctxVIS = scopeVIS.ctx;
-  ctxVIS.fillStyle = "rgba(6, 12, 20, 0.4)";
-  ctxVIS.fillRect(0, 0, scopeVIS.canvas.width, scopeVIS.canvas.height);
   const w2 = scopeVIS.canvas.width;
   const h2 = scopeVIS.canvas.height;
-  const numBars = 24;
-  const barWidth = w2 / numBars - 3;
+  ctxVIS.fillStyle = "#040910";
+  ctxVIS.fillRect(0, 0, w2, h2);
+
+  // Grid
+  ctxVIS.strokeStyle = "rgba(34, 211, 238, 0.12)";
+  ctxVIS.lineWidth = 1;
+  ctxVIS.beginPath();
+  for (let gy = 24; gy < h2; gy += 32) {
+    ctxVIS.moveTo(0, gy);
+    ctxVIS.lineTo(w2, gy);
+  }
+  ctxVIS.stroke();
+
+  const numBars = 28;
+  const barWidth = Math.floor(w2 / numBars) - 3;
   for (let i = 0; i < numBars; i++) {
-    const barHeight = Math.min(
-      h2 * 0.85,
-      (audioSample.bins ? audioSample.bins[i * 4] / 255 : Math.sin(time * 3 + i * 0.5) * 0.4 + 0.5) * h2 * 0.8
-    );
+    const rawVal = audioSample.bins && audioSample.bins[i * 3] !== undefined
+      ? audioSample.bins[i * 3] / 255
+      : Math.sin(time * 3.5 + i * 0.4) * 0.35 + 0.5;
+    const barHeight = Math.max(6, Math.min(h2 * 0.88, rawVal * h2 * 0.82));
+    
     const grad = ctxVIS.createLinearGradient(0, h2, 0, 0);
-    grad.addColorStop(0, "#22d3ee");
-    grad.addColorStop(1, "#f97316");
+    grad.addColorStop(0, "#06b6d4");
+    grad.addColorStop(0.65, "#f59e0b");
+    grad.addColorStop(1, "#ef4444");
     ctxVIS.fillStyle = grad;
-    ctxVIS.fillRect(i * (barWidth + 3) + 4, h2 - barHeight - 8, barWidth, barHeight);
+    ctxVIS.fillRect(i * (barWidth + 3) + 6, h2 - barHeight - 8, barWidth, barHeight);
+
+    // Peak dot
+    ctxVIS.fillStyle = "#ffffff";
+    ctxVIS.fillRect(i * (barWidth + 3) + 6, h2 - barHeight - 12, barWidth, 2);
   }
   scopeVIS.texture.needsUpdate = true;
 
+  // 3. CLK 8-Step Sequencer Gate Display
   const ctxCLK = scopeCLK.ctx;
-  ctxCLK.fillStyle = "rgba(4, 10, 16, 0.5)";
-  ctxCLK.fillRect(0, 0, scopeCLK.canvas.width, scopeCLK.canvas.height);
+  const w3 = scopeCLK.canvas.width;
+  const h3 = scopeCLK.canvas.height;
+  ctxCLK.fillStyle = "#040810";
+  ctxCLK.fillRect(0, 0, w3, h3);
+
   const steps = 8;
-  const stepW = scopeCLK.canvas.width / steps - 6;
-  const currentStep = audioSample.step;
+  const stepW = Math.floor(w3 / steps) - 6;
+  const currentStep = audioSample.step !== undefined ? audioSample.step % 8 : Math.floor(time * 4) % 8;
   for (let i = 0; i < steps; i++) {
     const isActive = i === currentStep;
-    ctxCLK.fillStyle = isActive ? "#22d3ee" : "rgba(34, 211, 238, 0.15)";
-    ctxCLK.fillRect(i * (stepW + 6) + 4, 12, stepW, scopeCLK.canvas.height - 24);
+    ctxCLK.fillStyle = isActive ? "#34d399" : "rgba(52, 211, 153, 0.18)";
+    ctxCLK.shadowColor = isActive ? "#34d399" : "transparent";
+    ctxCLK.shadowBlur = isActive ? 12 : 0;
+    ctxCLK.fillRect(i * (stepW + 6) + 5, 12, stepW, h3 - 24);
   }
+  ctxCLK.shadowBlur = 0;
   scopeCLK.texture.needsUpdate = true;
 }
 
@@ -715,12 +857,12 @@ function tick(now) {
 
   controls.forEach((ctrl, i) => {
     const mod = Math.sin(time * ctrl.speed + i * 1.3) * 0.4 + sample.mid * 0.3;
-    ctrl.mesh.rotation.z = ctrl.baseZ + mod;
+    ctrl.mesh.rotation.y = ctrl.baseY + mod;
   });
 
   faders.forEach((fader, i) => {
-    const mod = Math.sin(time * 1.5 + i * 0.8) * 0.015 + sample.bass * 0.01;
-    fader.mesh.position.y = fader.baseY + mod;
+    const mod = Math.sin(time * 1.5 + i * 0.8) * 0.025 + sample.bass * 0.015;
+    fader.mesh.position.z = fader.baseZ + mod;
   });
 
   pulsePoints.forEach((pulse) => {
@@ -730,6 +872,11 @@ function tick(now) {
   });
 
   renderScreenWaves(sample, time);
+
+  const card = document.getElementById("inspector");
+  if (card && card.style.display !== "none" && (hoveredModule || focusedModule)) {
+    positionInspector(hoveredModule || focusedModule);
+  }
 
   renderer.render(scene, camera);
 }

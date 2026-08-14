@@ -14,7 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=3" />
   </head>
   <body>
     <canvas id="stage"></canvas>
@@ -65,28 +65,28 @@
           Open the roadmap
         </a>
       </div>
-
-      <!-- Live Interactive Module Inspector HUD -->
-      <div id="inspector" class="inspector-card" style="display: none;">
-        <div class="card-header">
-          <span class="card-badge" id="card-badge">● CLK</span>
-          <span class="card-role" id="card-role">Master Clock</span>
-          <button id="card-close" style="background:transparent;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:0 4px;margin-left:auto;">✕</button>
-        </div>
-        <h3 class="card-title" id="card-title">Master Clock & Sequencer</h3>
-        <p class="card-desc" id="card-desc">
-          Clock, reset, trigger, and gate — the spine of a generative system.
-        </p>
-        <div class="card-actions">
-          <a id="card-lesson" class="btn primary" href="#" target="_blank" rel="noopener" data-i18n="tipLesson">
-            Open lesson →
-          </a>
-          <a id="card-patch" class="btn" href="#" target="_blank" rel="noopener" data-i18n="tipPatch">
-            Open patch ↗
-          </a>
-        </div>
-      </div>
     </main>
+
+    <!-- Floating Interactive Module Inspector Tooltip (Active in Learn mode) -->
+    <div id="inspector" class="inspector-card" style="display: none;">
+      <div class="card-header">
+        <span class="card-badge" id="card-badge">● CLK</span>
+        <span class="card-role" id="card-role">Master Clock</span>
+        <button id="card-close" style="background:transparent;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:0 4px;margin-left:auto;">✕</button>
+      </div>
+      <h3 class="card-title" id="card-title">Master Clock & Sequencer</h3>
+      <p class="card-desc" id="card-desc">
+        Clock, reset, trigger, and gate — the spine of a generative system.
+      </p>
+      <div class="card-actions">
+        <a id="card-lesson" class="btn primary" href="#" target="_blank" rel="noopener" data-i18n="tipLesson">
+          Open lesson →
+        </a>
+        <a id="card-patch" class="btn" href="#" target="_blank" rel="noopener" data-i18n="tipPatch">
+          Open patch ↗
+        </a>
+      </div>
+    </div>
 
     <!-- Focus Reset Button (Appears when zoomed in on a module) -->
     <button id="btn-unfocus" class="btn" style="display: none;">
