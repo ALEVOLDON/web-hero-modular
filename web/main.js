@@ -30,15 +30,50 @@ let targetRotY = 0;
 let mouseX = 0;
 let mouseY = 0;
 
-const cameraTarget = new THREE.Vector3(0.22, -0.02, 0.0);
+// Touch Drag State for Mobile
+let isTouching = false;
+let touchStartX = 0;
+let touchStartY = 0;
+let touchCurrentX = 0;
+let touchCurrentY = 0;
 
-// Camera Shot Presets
-const SHOTS = {
-  overview: { pos: [0.12, 0.24, 1.35], look: [0.22, -0.02, 0.0], tilt: 1.0 },
-  knobs: { pos: [-0.08, 0.16, 0.82], look: [-0.02, 0.02, 0.0], tilt: 0.4 },
-  cables: { pos: [0.28, 0.06, 0.88], look: [0.24, -0.10, 0.0], tilt: 0.5 },
-  into: { pos: [0.18, 0.08, 0.65], look: [0.18, 0.0, 0.0], tilt: 0.3 },
-};
+const cameraTarget = new THREE.Vector3(0.0, -0.02, 0.0);
+
+function isMobile() {
+  return window.innerWidth <= 768 || window.innerHeight > window.innerWidth;
+}
+
+// Dynamic Camera Presets (Adapts to desktop vs mobile aspect ratio)
+function getShotConfig(shotKey) {
+  const mobile = isMobile();
+  const presets = {
+    overview: {
+      pos: mobile ? [0.0, 0.32, 1.85] : [0.12, 0.24, 1.35],
+      look: mobile ? [0.0, -0.02, 0.0] : [0.22, -0.02, 0.0],
+      rackX: mobile ? 0.0 : 0.22,
+      tilt: 1.0,
+    },
+    knobs: {
+      pos: mobile ? [-0.15, 0.22, 1.15] : [-0.08, 0.16, 0.82],
+      look: mobile ? [-0.10, 0.02, 0.0] : [-0.02, 0.02, 0.0],
+      rackX: mobile ? 0.0 : 0.22,
+      tilt: 0.4,
+    },
+    cables: {
+      pos: mobile ? [0.15, 0.14, 1.25] : [0.28, 0.06, 0.88],
+      look: mobile ? [0.10, -0.10, 0.0] : [0.24, -0.10, 0.0],
+      rackX: mobile ? 0.0 : 0.22,
+      tilt: 0.5,
+    },
+    into: {
+      pos: mobile ? [0.0, 0.14, 0.95] : [0.18, 0.08, 0.65],
+      look: mobile ? [0.0, 0.0, 0.0] : [0.18, 0.0, 0.0],
+      rackX: mobile ? 0.0 : 0.22,
+      tilt: 0.3,
+    },
+  };
+  return presets[shotKey] || presets.overview;
+}
 
 // Module Focus Zoom Targets (X coordinate in rack space)
 const MODULE_BOUNDS = {
@@ -52,7 +87,7 @@ const MODULE_BOUNDS = {
   VIS: { x: 0.45 },
 };
 
-// Canvas Dynamic Scope & Screen Textures
+// Canvas Dynamic Scope Textures
 function createScopeCanvas(width = 256, height = 128) {
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -72,10 +107,12 @@ function init() {
   const canvas = document.getElementById("stage");
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x06090e);
-  scene.fog = new THREE.FogExp2(0x06090e, 0.16);
+  scene.fog = new THREE.FogExp2(0x06090e, 0.15);
 
+  const initialShot = getShotConfig("overview");
   camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.08, 30);
-  camera.position.set(...SHOTS.overview.pos);
+  camera.position.set(...initialShot.pos);
+  cameraTarget.set(...initialShot.look);
   camera.lookAt(cameraTarget);
 
   renderer = new THREE.WebGLRenderer({
@@ -96,10 +133,10 @@ function init() {
   scene.add(rig);
 
   rackGroup = new THREE.Group();
-  // Tilt rack 65 deg so faceplates face camera with natural ergonomic slant
+  // Ergonomic synthesizer rack tilt (~62 degrees back and -12 degrees yaw on desktop)
   rackGroup.rotation.x = THREE.MathUtils.degToRad(62);
-  rackGroup.rotation.y = THREE.MathUtils.degToRad(-12);
-  rackGroup.position.set(0.22, 0.04, 0.0);
+  rackGroup.rotation.y = THREE.MathUtils.degToRad(isMobile() ? 0 : -12);
+  rackGroup.position.set(initialShot.rackX, 0.04, 0.0);
   rig.add(rackGroup);
 
   setupLighting();
@@ -108,6 +145,7 @@ function init() {
   setupAudio();
   loadModel();
 
+  onResize();
   window.addEventListener("resize", onResize);
   requestAnimationFrame(tick);
 }
@@ -170,14 +208,14 @@ function loadModel() {
         child.castShadow = true;
         child.receiveShadow = true;
 
-        // Clamp texture wrapping
         if (child.material && child.material.map) {
           child.material.map.wrapS = THREE.ClampToEdgeWrapping;
           child.material.map.wrapT = THREE.ClampToEdgeWrapping;
           child.material.map.needsUpdate = true;
         }
 
-        // Collect Knobs
+        const name = child.name;
+
         if (name.startsWith("Knob_")) {
           controls.push({
             mesh: child,
@@ -187,7 +225,6 @@ function loadModel() {
           });
         }
 
-        // Collect Faders
         if (name.startsWith("FaderCap_")) {
           faders.push({
             mesh: child,
@@ -196,12 +233,10 @@ function loadModel() {
           });
         }
 
-        // Collect LEDs
         if (name.startsWith("LED_")) {
           leds.push(child);
         }
 
-        // Apply Live Dynamic Screens
         if (name.startsWith("Screen_")) {
           if (name.includes("VIS")) {
             child.material = new THREE.MeshBasicMaterial({ map: scopeVIS.texture });
@@ -215,7 +250,6 @@ function loadModel() {
           }
         }
 
-        // Identify module faces for raycasting & highlighting
         if (name.includes("_Face") || name.includes("_Body")) {
           const modId = moduleIdFromObject(child);
           if (modId) {
@@ -290,19 +324,73 @@ function setupInteractivity() {
   raycaster = new THREE.Raycaster();
   pointer = new THREE.Vector2();
 
+  // Desktop Mouse Parallax
   window.addEventListener("pointermove", (e) => {
+    if (e.pointerType === "touch") return; // Handled in touch events
+
     mouseX = (e.clientX / window.innerWidth) * 2 - 1;
     mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
     pointer.x = mouseX;
     pointer.y = mouseY;
 
-    const shotConfig = SHOTS[currentShot] || SHOTS.overview;
+    const shotConfig = getShotConfig(currentShot);
     const tiltScale = focusedModule ? 0.2 : shotConfig.tilt;
 
     targetRotY = mouseX * 0.14 * tiltScale;
     targetRotX = -mouseY * 0.09 * tiltScale;
 
     checkRaycast();
+  });
+
+  // Mobile Touch Event Handling
+  window.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 1) {
+      isTouching = true;
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      touchCurrentX = touchStartX;
+      touchCurrentY = touchStartY;
+
+      // Update pointer for tap raycasting
+      pointer.x = (touchStartX / window.innerWidth) * 2 - 1;
+      pointer.y = -(touchStartY / window.innerHeight) * 2 + 1;
+    }
+  }, { passive: true });
+
+  window.addEventListener("touchmove", (e) => {
+    if (isTouching && e.touches.length === 1) {
+      touchCurrentX = e.touches[0].clientX;
+      touchCurrentY = e.touches[0].clientY;
+
+      const deltaX = (touchCurrentX - touchStartX) / window.innerWidth;
+      const deltaY = (touchCurrentY - touchStartY) / window.innerHeight;
+
+      targetRotY = deltaX * 0.35;
+      targetRotX = -deltaY * 0.25;
+    }
+  }, { passive: true });
+
+  window.addEventListener("touchend", (e) => {
+    if (isTouching) {
+      isTouching = false;
+      const moveDistance = Math.hypot(touchCurrentX - touchStartX, touchCurrentY - touchStartY);
+      
+      // Tap detected (minimal movement)
+      if (moveDistance < 10) {
+        checkRaycast();
+        if (hoveredModule) {
+          focusModule(hoveredModule);
+        }
+      }
+      
+      // Smooth return to neutral
+      gsap.to(this, {
+        targetRotX: 0,
+        targetRotY: 0,
+        duration: 0.6,
+        ease: "power2.out",
+      });
+    }
   });
 
   window.addEventListener("click", (e) => {
@@ -323,6 +411,7 @@ function setupInteractivity() {
   document.getElementById("lang-ru")?.addEventListener("click", () => setLanguage("ru"));
 
   document.getElementById("btn-unfocus")?.addEventListener("click", () => unfocusModule());
+  document.getElementById("card-close")?.addEventListener("click", () => hideInspector());
 }
 
 function setMode(mode) {
@@ -341,7 +430,6 @@ function setMode(mode) {
 }
 
 function setShot(shotKey) {
-  if (!SHOTS[shotKey]) return;
   currentShot = shotKey;
   focusedModule = null;
   document.getElementById("btn-unfocus").style.display = "none";
@@ -350,7 +438,7 @@ function setShot(shotKey) {
     b.setAttribute("aria-selected", b.dataset.shot === shotKey);
   });
 
-  const shot = SHOTS[shotKey];
+  const shot = getShotConfig(shotKey);
   gsap.to(camera.position, {
     x: shot.pos[0],
     y: shot.pos[1],
@@ -368,8 +456,8 @@ function setShot(shotKey) {
   });
 
   gsap.to(rackGroup.position, {
-    x: 0.24,
-    y: -0.05,
+    x: shot.rackX,
+    y: 0.04,
     z: 0.0,
     duration: 1.2,
     ease: "power3.inOut",
@@ -406,7 +494,7 @@ function checkRaycast() {
   if (hoveredModule && !focusedModule) {
     unhighlightAll();
     hoveredModule = null;
-    if (currentMode === "look") {
+    if (currentMode === "look" && !isMobile()) {
       hideInspector();
     }
   }
@@ -457,12 +545,8 @@ function updateInspector(modId) {
   if (title) title.textContent = mod.name[lang] || mod.name.en;
   if (desc) desc.textContent = mod.desc[lang] || mod.desc.en;
 
-  if (lessonBtn) {
-    lessonBtn.href = mod.lesson[lang] || mod.lesson.en;
-  }
-  if (patchBtn) {
-    patchBtn.href = mod.patch[lang] || mod.patch.en;
-  }
+  if (lessonBtn) lessonBtn.href = mod.lesson[lang] || mod.lesson.en;
+  if (patchBtn) patchBtn.href = mod.patch[lang] || mod.patch.en;
 }
 
 function hideInspector() {
@@ -478,12 +562,14 @@ function focusModule(modId) {
   document.getElementById("btn-unfocus").style.display = "inline-flex";
   updateInspector(modId);
 
-  // Zoom camera smoothly into the module
-  const targetX = bound.x + 0.15;
+  const mobile = isMobile();
+  const targetX = mobile ? bound.x : bound.x + 0.15;
+  const targetZ = mobile ? 0.95 : 0.62;
+
   gsap.to(camera.position, {
     x: targetX,
-    y: 0.12,
-    z: 0.62,
+    y: 0.14,
+    z: targetZ,
     duration: 1.0,
     ease: "power3.out",
   });
@@ -497,8 +583,8 @@ function focusModule(modId) {
   });
 
   gsap.to(rackGroup.position, {
-    x: 0.24 - bound.x * 0.45,
-    y: -0.05,
+    x: (mobile ? 0 : 0.22) - bound.x * (mobile ? 0.2 : 0.45),
+    y: 0.04,
     z: 0.0,
     duration: 1.0,
     ease: "power3.out",
@@ -509,7 +595,7 @@ function unfocusModule() {
   focusedModule = null;
   document.getElementById("btn-unfocus").style.display = "none";
   setShot(currentShot);
-  if (currentMode === "look") {
+  if (currentMode === "look" && !isMobile()) {
     hideInspector();
   }
 }
@@ -544,7 +630,6 @@ function updateAudioButtons(mode) {
 }
 
 function renderScreenWaves(audioSample, time) {
-  // 1. VCO Oscilloscope Wave
   const ctxVCO = scopeVCO.ctx;
   ctxVCO.fillStyle = "rgba(4, 10, 16, 0.35)";
   ctxVCO.fillRect(0, 0, scopeVCO.canvas.width, scopeVCO.canvas.height);
@@ -563,7 +648,6 @@ function renderScreenWaves(audioSample, time) {
   ctxVCO.stroke();
   scopeVCO.texture.needsUpdate = true;
 
-  // 2. VIS Spectrum Analyzer
   const ctxVIS = scopeVIS.ctx;
   ctxVIS.fillStyle = "rgba(6, 12, 20, 0.4)";
   ctxVIS.fillRect(0, 0, scopeVIS.canvas.width, scopeVIS.canvas.height);
@@ -584,7 +668,6 @@ function renderScreenWaves(audioSample, time) {
   }
   scopeVIS.texture.needsUpdate = true;
 
-  // 3. CLK Step Sequencer
   const ctxCLK = scopeCLK.ctx;
   ctxCLK.fillStyle = "rgba(4, 10, 16, 0.5)";
   ctxCLK.fillRect(0, 0, scopeCLK.canvas.width, scopeCLK.canvas.height);
@@ -600,38 +683,46 @@ function renderScreenWaves(audioSample, time) {
 }
 
 function onResize() {
-  camera.aspect = window.innerWidth / window.innerHeight;
+  const aspect = window.innerWidth / window.innerHeight;
+  camera.aspect = aspect;
+
+  // Responsive FOV: expand FOV on narrow screens so rack is never clipped
+  if (aspect < 1.0) {
+    camera.fov = Math.min(62, 40 / (aspect * 0.85));
+  } else {
+    camera.fov = 40;
+  }
   camera.updateProjectionMatrix();
+
   renderer.setSize(window.innerWidth, window.innerHeight);
+
+  // Recalibrate rack position
+  const shot = getShotConfig(currentShot);
+  rackGroup.position.x = shot.rackX;
+  rackGroup.rotation.y = THREE.MathUtils.degToRad(isMobile() ? 0 : -12);
 }
 
 function tick(now) {
   requestAnimationFrame(tick);
   const time = now * 0.001;
 
-  // Parallax inertia
   rig.rotation.y += (targetRotY - rig.rotation.y) * 0.06;
   rig.rotation.x += (targetRotX - rig.rotation.x) * 0.06;
 
-  // Camera lookAt tracking
   camera.lookAt(cameraTarget);
 
-  // Audio Sampling
   const sample = patch ? patch.sample() : { bass: 0, mid: 0, high: 0, rms: 0, step: 0 };
 
-  // Knobs rotation
   controls.forEach((ctrl, i) => {
     const mod = Math.sin(time * ctrl.speed + i * 1.3) * 0.4 + sample.mid * 0.3;
     ctrl.mesh.rotation.z = ctrl.baseZ + mod;
   });
 
-  // Faders animation
   faders.forEach((fader, i) => {
     const mod = Math.sin(time * 1.5 + i * 0.8) * 0.015 + sample.bass * 0.01;
     fader.mesh.position.y = fader.baseY + mod;
   });
 
-  // Cable voltage pulses
   pulsePoints.forEach((pulse) => {
     pulse.t = (pulse.t + pulse.speed * 0.016) % 1.0;
     const pt = pulse.curve.getPointAt(pulse.t);
@@ -643,6 +734,5 @@ function tick(now) {
   renderer.render(scene, camera);
 }
 
-// Boot
 applyLang(currentLang());
 init();
