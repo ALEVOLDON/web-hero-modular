@@ -1,4 +1,4 @@
-"""Export a web-ready GLB. Motion is left to GSAP, not Blender."""
+"""Export clean web-ready GLB from hero_loop.blend."""
 import bpy
 import os
 
@@ -9,19 +9,20 @@ OUT = os.path.join(ROOT, "web", "hero.glb")
 if bpy.data.filepath.replace("/", "\\").lower() != BLEND.lower():
     bpy.ops.wm.open_mainfile(filepath=BLEND)
 
-hide_prefixes = ("HUD_", "Backdrop", "Orb_", "Floor")
+# Hide non-case objects
+hide_prefixes = ("HUD_", "Backdrop", "Orb_", "Floor", "Table")
 for o in bpy.data.objects:
     if o.name.startswith(hide_prefixes):
         o.hide_set(True)
         o.hide_render = True
         o.hide_viewport = True
 
-# Clear baked object animation — GSAP owns motion
+# Clear baked animation
 for o in bpy.data.objects:
     if o.animation_data:
         o.animation_data_clear()
 
-# Curves become real tubes in glTF
+# Convert curve cables to real meshes for glTF
 cables = [o for o in bpy.data.objects if o.name.startswith("Cable_") and o.type == "CURVE"]
 if cables:
     bpy.ops.object.select_all(action="DESELECT")
@@ -32,9 +33,9 @@ if cables:
     bpy.context.view_layer.objects.active = cables[0]
     try:
         bpy.ops.object.convert(target="MESH")
-        print("converted cables", len(cables))
+        print("Converted cables to mesh:", len(cables))
     except Exception as e:
-        print("cable convert", e)
+        print("Cable conversion error:", e)
 
 kwargs = dict(
     filepath=OUT,
@@ -52,7 +53,8 @@ try:
         export_draco_mesh_compression_enable=True,
         export_draco_mesh_compression_level=6,
     )
-    print("EXPORTED DRACO", OUT, "bytes", os.path.getsize(OUT) if os.path.isfile(OUT) else 0)
-except TypeError:
+    print("EXPORTED DRACO GLB:", OUT, "bytes:", os.path.getsize(OUT) if os.path.isfile(OUT) else 0)
+except Exception as err:
+    print("Draco export failed, trying standard GLTF:", err)
     bpy.ops.export_scene.gltf(**kwargs)
-    print("EXPORTED", OUT, "bytes", os.path.getsize(OUT) if os.path.isfile(OUT) else 0)
+    print("EXPORTED STANDARD GLB:", OUT, "bytes:", os.path.getsize(OUT) if os.path.isfile(OUT) else 0)
