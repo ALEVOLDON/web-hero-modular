@@ -261,24 +261,32 @@ h1 em {
   box-shadow: 0 6px 22px rgba(34, 211, 238, 0.4);
 }
 
-/* Interactive Inspector HUD Card / Bottom Sheet on Mobile */
+/* Interactive Floating Inspector HUD Tooltip (Learn Mode) */
 .inspector-card {
-  padding: 16px 18px;
-  background: var(--bg-card);
+  position: fixed;
+  z-index: 100;
+  width: 310px;
+  max-width: calc(100vw - 32px);
+  padding: 14px 16px;
+  background: rgba(8, 14, 22, 0.92);
   border: 1px solid var(--border-active);
   border-radius: 12px;
-  backdrop-filter: blur(20px);
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5), 0 0 20px rgba(34, 211, 238, 0.12);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 24px rgba(34, 211, 238, 0.2);
   display: flex;
   flex-direction: column;
   gap: 8px;
-  animation: cardFade 0.25s var(--ease-out);
   pointer-events: auto;
+  opacity: 0;
+  transform: translateY(6px) scale(0.97);
+  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity, left, top;
 }
 
-@keyframes cardFade {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+.inspector-card.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
 }
 
 .card-header {
